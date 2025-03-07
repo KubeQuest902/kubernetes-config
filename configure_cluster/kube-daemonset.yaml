@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: harbor-ca-cert-daemonset
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: harbor-ca-cert
+  template:
+    metadata:
+      labels:
+        name: harbor-ca-cert
+    spec:
+      containers:
+      - name: harbor-ca-cert
+        image: alpine:latest
+        command: ["/bin/sh", "-c", "apk add --no-cache ca-certificates && mkdir -p /etc/ssl && mkdir -p /etc/ssl/certs && cp /etc/harbor/harbor.crt /etc/ssl/certs/harbor.crt && update-ca-certificates && sleep 3600"]
+        volumeMounts:
+        - name: harbor-cert-volume
+          mountPath: /etc/harbor
+      volumes:
+      - name: harbor-cert-volume
+        secret:
+          secretName: harbor-ca-cert
