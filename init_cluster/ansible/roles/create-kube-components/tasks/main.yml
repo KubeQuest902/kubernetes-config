@@ -1,0 +1,57 @@
+- name: Create Harbor CA certificate ConfigMap from harbor.crt
+  kubernetes.core.k8s:
+    namespace: kube-system
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: harbor-ca-cert
+      data:
+        ca.crt: "{{ lookup('file', './harbor.crt') }}"
+    state: present
+
+- name: Apply kube-daemonset.yaml
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', 'kube-daemonset.yaml') }}"
+
+- name: Create namespaces from namespaces.yaml
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('file', './namespaces.yaml') }}"
+
+- name: Create Redis secret in 'redis' namespace
+  kubernetes.core.k8s:
+    namespace: redis
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Opaque
+      metadata:
+        name: redis-credentials
+      data:
+        redis-password: "{{ lookup('file', './secrets/redis/password') | b64encode }}"
+    state: present
+
+- name: Create Redis secret in 'app' namespace
+  kubernetes.core.k8s:
+    namespace: app
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Opaque
+      metadata:
+        name: redis-credentials
+      data:
+        redis-password: "{{ lookup('file', './secrets/redis/password') | b64encode }}"
+    state: present
+
+- name: Install Redis
+  kubernetes.core.helm:
+    name: redis
+    chart: bitnami/redis
+    namespace: redis
+    values:
+      - redis.yaml
+    wait: true
+    state: present

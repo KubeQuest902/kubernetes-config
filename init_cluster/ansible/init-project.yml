@@ -1,0 +1,8 @@
+---
+- name: Init project
+  hosts: all
+  become: yes
+  roles:
+    - role: install-requirements
+    - role: init-helm
+    - role: create-kube-components
