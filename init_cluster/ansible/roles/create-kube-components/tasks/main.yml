@@ -1,3 +1,8 @@
+- name: "Install kubernetes Ansible module"
+  pip:
+    name:
+      kubernetes
+
 - name: Create Harbor CA certificate ConfigMap from harbor.crt
   kubernetes.core.k8s:
     namespace: kube-system
@@ -9,16 +14,19 @@
       data:
         ca.crt: "{{ lookup('file', './harbor.crt') }}"
     state: present
+    kubeconfig: "~{{ansible_user}}/.kube/config"
 
 - name: Apply kube-daemonset.yaml
   kubernetes.core.k8s:
     state: present
     definition: "{{ lookup('file', 'kube-daemonset.yaml') }}"
+    kubeconfig: "~{{ansible_user}}/.kube/config"
 
 - name: Create namespaces from namespaces.yaml
   kubernetes.core.k8s:
     state: present
     definition: "{{ lookup('file', './namespaces.yaml') }}"
+    kubeconfig: "~{{ansible_user}}/.kube/config"
 
 - name: Create Redis secret in 'redis' namespace
   kubernetes.core.k8s:
@@ -30,7 +38,8 @@
       metadata:
         name: redis-credentials
       data:
-        redis-password: "{{ lookup('file', './secrets/redis/password') | b64encode }}"
+        redis-password: "{{ lookup('file', './password') | b64encode }}"
+    kubeconfig: "~{{ansible_user}}/.kube/config"
     state: present
 
 - name: Create Redis secret in 'app' namespace
@@ -43,15 +52,19 @@
       metadata:
         name: redis-credentials
       data:
-        redis-password: "{{ lookup('file', './secrets/redis/password') | b64encode }}"
+        redis-password: "{{ lookup('file', './password') | b64encode }}"
+    kubeconfig: "~{{ansible_user}}/.kube/config"
     state: present
 
 - name: Install Redis
   kubernetes.core.helm:
     name: redis
-    chart: bitnami/redis
+    chart_ref: bitnami/redis
+    chart_version: 20.9.0
     namespace: redis
-    values:
+    values_files:
       - redis.yaml
-    wait: true
-    state: present
+    set_values:
+      - value: architecture=standalone
+      - value: master.persistence.enabled=false
+    kubeconfig: "~{{ansible_user}}/.kube/config"

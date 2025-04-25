@@ -1,3 +1,2 @@
 base_work_dir: ~/ansible
 work_dir: ~/ansible/workspace
-git_base_url: git@github.com:ZolaraProject/
