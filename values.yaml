@@ -1,0 +1,58 @@
+# helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack --namespace monitoring -f values.yml
+
+grafana:
+  persistence:
+    enabled: true
+    type: pvc
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    storageClassName: standard
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki.logging.svc.cluster.local:3100
+          isDefault: false
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: loki
+          orgId: 1
+          folder: Loki
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/loki
+
+  dashboards:
+    loki:
+      loki-dashboard:
+        gnetId: 12611
+        revision: 2
+        datasource: Loki
+
+  defaultDashboardName: loki-dashboard
+  defaultDashboardFolder: Loki
+
+prometheusOperator:
+  alertmanager:
+    enabled: true
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        receiver: "discord-notifications"
+        repeat_interval: 12h
+        routes:
+          - receiver: "discord-notifications"
+      receivers:
+        - name: "discord-notifications"
+          discord_configs:
+          - webhook_url: 'https://discord.com/api/webhooks/1375032250369966222/N1COATxFEo_AXIakuwf4N4fexNd2cfWo5wgEFuFWDnJYE6yca3hy-JwWsTo5vzeiPtz_'
